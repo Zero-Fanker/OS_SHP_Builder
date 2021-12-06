@@ -1,0 +1,519 @@
+unit SHP_RA_File;
+
+interface
+
+uses Classes, SysUtils, SHP_File, SHP_RA_Code, Dialogs;
+
+type
+TSHPTDHeader = record
+   NumImages : word;    {Number of images}
+   A,B       : word;    {Unknown, possibly x, y, although the numbers are too high for that make sense}
+   Width,
+   Height    : word;    {Width and Height of the images}
+   C         : longint; {Offset for something}
+end;
+// Note: C has showed the following behaviour:
+
+// Pictures with 1 frame: Last byte of the file
+// Tanks, units: Offset for the declaration of one of the middle frames.
+// BuildUp animations: Offset to somewhere in the middle of the file.
+
+
+// Banshee: I'm changing Vladan's Bato's structure based on my
+// observations.
+TSHPTDOffsetUnit = record
+   Offset  : word;  {Offset of image in file}
+   Zero : byte;
+   Compression : byte;
+   ReOffset : word; // 0 for 80h, Offset from another frame for 40h, number of frame for 20h.
+   Zero2 : byte;
+   CompressionExtra : byte;
+end;
+
+TSHPTDOffsets = array of TSHPTDOffsetUnit;
+
+TSHPTDFrame = record
+   Data : TFrameImage;
+end;
+
+C_SHPTD = class
+   public
+      IsValid : Boolean;
+      procedure Load(const Filename: string);
+      function getSHP(): TSHP;
+      function saveSHP(const SHP : TSHP; const Filename : String): Boolean;
+   private
+      NumImages : word;
+      Width : word;
+      Height : word;
+      Frames : array of TSHPTDFrame;
+      FileSize : longword;
+      Name : string;
+      FrameHeaders : TSHPTDOffsets;
+      function HuntMyOffset(const Offset:word; const MyFrame: Integer; const FrameHeaders : TSHPTDOffsets): Integer;
+end;
+
+
+
+implementation
+
+{$D+}
+
+uses SHP_Engine;
+
+function FindNextRAOffsetFrom(const FrameHeaders : TSHPTDOffsets; Init,Last: integer): longint;
+begin
+   Result := 0;
+   inc(Last);
+   While (Result = 0) and (Init < Last) do
+   begin
+      Result := FrameHeaders[Init].offset;
+      inc(Init);
+   end;
+end;
+
+function FindFrameSize(const FrameHeaders : TSHPTDOffsets; Frame: Integer; Filesize : Integer): Integer;
+var
+   Next: Integer;
+begin
+   Next := FindNextRAOffsetFrom(FrameHeaders,Frame+1,High(FrameHeaders));
+   if Next <> 0 then
+      Result := Next - FrameHeaders[Frame].Offset
+   else
+      Result := FileSize - FrameHeaders[Frame].Offset;
+end;
+
+procedure C_SHPTD.Load(const Filename : string);
+var
+   f : TStream;
+   PData,PCurrentData,PNewData,PWriteData,PFrame : PByte;
+   Counter : word;
+   DataBuffer : array of TDatabuffer;
+   CurrentDB : TDatabuffer;
+   ReFrame : Integer; // Get the frame for decode 40|20
+   x,y : longword;
+   Size,BufferSize : longword;
+begin
+   // The file wasn't read yet, so it's invalid.
+   IsValid := false;
+
+   Name := ExtractFileName(Filename);
+   // If file doesn't exist, it won't open anything. Bye bye.
+   If not FileExists(Filename) then
+      exit;
+
+   // Now. Let's open the file and store the whole thing in
+   //the memory.
+   F := TFileStream.Create(Filename,fmOpenRead);
+   FileSize := F.Size;
+   Getmem(PData,FileSize);
+   try
+      F.Read(PData^,FileSize);
+   except
+      F.Free;
+      FreeMem(PData);
+      exit;
+   end;
+   PCurrentData := PData;
+   F.Free; // Once the file is read, close it.
+
+   // Now that we have the contents, let's read it.
+
+   // First, the header.
+   NumImages := Word(PWord(PCurrentData)^);
+
+   if (NumImages = 0) then
+   begin
+      FreeMem(PData);
+      exit; // Nothing to read.
+   end;
+   inc(PCurrentData,6); // Skip A, B.
+   Width := Word(PWord(PCurrentData)^);
+   if (Width = 0) then
+   begin
+      FreeMem(PData);
+      exit; // Nothing to read.
+   end;
+   inc(PCurrentData,2);
+   Height := Word(PWord(PCurrentData)^);
+   if (Height = 0) then
+   begin
+      FreeMem(PData);
+      exit; // Nothing to read.
+   end;
+   inc(PCurrentData,6); // Skip C
+
+   // Let's get the offsets and compressions of each frame.
+   // We won't need to use FrameHeaders for the rest of our lives,
+   // so, once the data is read, we are discarding it.
+   SetLength(FrameHeaders,NumImages);
+   For Counter := 0 to (NumImages-1) do
+   begin
+      // Let's read the info first.
+      FrameHeaders[Counter].Offset := Word(PWord(PCurrentData)^);
+      inc(PCurrentData,3); // Skip Zero
+      FrameHeaders[Counter].Compression := PCurrentData^;
+      inc(PCurrentData,1);
+      FrameHeaders[Counter].ReOffset := Word(PWord(PCurrentData)^);
+      inc(PCurrentData,3); // Skip Zero2
+      FrameHeaders[Counter].CompressionExtra := PCurrentData^;
+      inc(PCurrentData,1);
+   end;
+
+   // Time to fill in the images.
+   SetLength(Databuffer,NumImages);
+   // Copy all data to databuffer to get rid of PData
+   For counter := 0 to (NumImages-1) do
+   begin
+      SetLength(Databuffer[counter],width * height);
+      Size := FindFrameSize(FrameHeaders,Counter,Filesize);
+      PCurrentData := PData;
+      inc(PCurrentData,FrameHeaders[Counter].Offset);
+      dec(size);
+      for x := 0 to Size do
+      begin
+         DataBuffer[Counter,x] := PCurrentData^;
+         inc(PCurrentData);
+      end;
+   end;
+   FreeMem(PData);
+
+   // Now, time to analyse databuffer data.
+   For Counter := 0 to (NumImages-1) do
+   begin
+      // The behaviour now depends on the compression.
+      if (FrameHeaders[Counter].Compression = $80) then
+      begin // Compression 80h code starts here
+         // Point to the source data.
+         PFrame := PByte(Databuffer[counter]);
+         // Now it's time for the destination buffer
+         GetMem(PNewData,width * height);
+         PCurrentData := PNewData;
+         // Generate destination data with compression 80h
+         try
+            Buffersize := Decode80d(PFrame,PCurrentData,width*height);
+         except
+            ShowMessage('Error!');
+            FreeMem(PNewData);
+            FreeMem(PData);
+            exit;
+         end;
+         // Copy buffer to databuffer, for future consultations
+         PCurrentData := PNewData;
+         for x := 0 to Buffersize-1 do
+         begin
+            Databuffer[Counter,x] := PCurrentData^;
+            inc(PCurrentData);
+         end;
+         // Free destination buffer.
+         FreeMem(PNewData);
+      end
+      else if (FrameHeaders[Counter].Compression = $40) then
+      begin
+         // Compression 40h code starts here
+         // Get the re-offset frame
+         ReFrame := HuntMyOffset(FrameHeaders[Counter].ReOffset,Counter,FrameHeaders);
+         PCurrentData := PByte(Databuffer[ReFrame]);
+         // Now it's time for the destination buffer
+         GetMem(PNewData,width * height);
+         PWriteData := PNewData;
+         // And the frame to be XORed.
+         PFrame := PByte(Databuffer[counter]);
+         // Generate destination data with compression 40h
+         try
+            Buffersize := Decode40Tri(PFrame,PCurrentData,PWriteData);
+         except
+            ShowMessage('Error!');
+            FreeMem(PNewData);
+            FreeMem(PData);
+            exit;
+         end;
+         // Copy buffer to databuffer, for future consultations
+         SetLength(Databuffer[Counter],Buffersize);
+         PWriteData := PNewData;
+         for x := 0 to Buffersize-1 do
+         begin
+            Databuffer[Counter,x] := PWriteData^;
+            inc(PWriteData);
+         end;
+         // Free destination buffer.
+         FreeMem(PNewData);
+      end
+      else if (FrameHeaders[Counter].Compression = $20) then
+      begin
+         // Compression 20h code starts here.
+         // Get the re-offset frame
+         ReFrame := Counter - 1;//FrameHeaders[Counter].ReOffset;
+         PCurrentData := PByte(Databuffer[ReFrame]);
+         // Now it's time for the destination buffer
+         GetMem(PNewData,width * height);
+         PWriteData := PNewData;
+         // And the frame to be XORed.
+         PFrame := PByte(Databuffer[counter]);
+         // Generate destination data with compression 20h
+         try
+            Buffersize := Decode40Tri(PFrame,PCurrentData,PWriteData);
+         except
+            ShowMessage('Error!');
+            FreeMem(PNewData);
+            FreeMem(PData);
+            exit;
+         end;
+         // Copy buffer to databuffer, for future consultations
+         SetLength(Databuffer[Counter],Buffersize);
+         PWriteData := PNewData;
+         for x := 0 to Buffersize-1 do
+         begin
+            Databuffer[Counter,x] := PWriteData^;
+            inc(PWriteData);
+         end;
+         // Free destination buffer.
+         FreeMem(PNewData);
+      end
+      else if (FrameHeaders[Counter].Compression <> 0) then
+      begin // Invalid file.
+         exit; // Nothing to read.
+      end;
+   end;
+   // Now, the databuffer will be copied to the Data array.
+   SetLength(Frames,NumImages+1);
+   SetLength(Frames[0].Data,0,0);
+   for counter := 1 to NumImages do
+   begin
+      SetLength(Frames[counter].Data,width,height);
+      for x := 0 to (Width-1) do
+      begin
+         for y := 0 to (Height - 1) do
+         begin
+            Frames[counter].Data[x,y] := Databuffer[counter-1,(y * width) + x];
+         end;
+      end;
+   end;
+
+   PCurrentData := nil;
+   IsValid := true;
+end;
+
+function C_SHPTD.getSHP(): TSHP;
+var
+   Frame,x,y: longword;
+   CountTD,CountRA1 : longword;
+   Found : Boolean;
+begin
+   // Header.
+   Result.Header.Width := Width;
+   Result.Header.Height := Height;
+   Result.Header.NumImages := NumImages;
+
+   // Prepare frames.
+   SetLength(Result.Data,NumImages+1);
+   // For each frame, do
+   for Frame := 1 to NumImages do
+   begin
+      // Header Image.
+      Result.Data[Frame].Header_Image.x := 0;
+      Result.Data[Frame].Header_Image.y := 0;
+      Result.Data[Frame].Header_Image.cx := Width;
+      Result.Data[Frame].Header_Image.cy := Height;
+      Result.Data[Frame].Header_Image.compression := FrameHeaders[Frame-1].Compression;
+
+      // Databuffer.
+      SetLength(Result.Data[Frame].FrameImage,Width,Height);
+      for x := 0 to (Width - 1) do
+         for y := 0 to (Height - 1) do
+            Result.Data[Frame].FrameImage[x,y] := Frames[Frame].Data[x,y];
+   end;
+
+   Result.SHPType := stUnit;
+   Result.SHPGame := sgTD;
+
+   FindSHPType(Name,Result);
+
+   // Fast cameo checkup
+   if (Result.SHPType = stCameo) then
+   begin
+      if (Result.Data[1].FrameImage[0,0] = 193) then
+         Result.SHPGame := sgTD
+      else if (Result.Data[1].FrameImage[0,0] = 15) then
+         Result.SHPGame := sgRA1;
+   end
+   else if (Result.SHPType <> stAnimation) then
+   begin
+      // Count remapables in a random frame.
+      CountTD := 0;
+      CountRA1 := 0;
+      // Find Frame.
+      Frame := 1;
+      Found := false;
+      while (Frame <= NumImages) and (not Found) do
+      begin
+         if (FindFrameSize(FrameHeaders,Frame-1,Filesize) > 0) then
+         begin
+            Found := true;
+         end
+         else
+            inc(Frame);
+      end;
+      // Let's count remmapables now.
+      for x := 0 to Width-1 do
+         for y := 0 to Height-1 do
+         begin
+            if (Result.Data[Frame].FrameImage[x,y] > 79) and (Result.Data[Frame].FrameImage[x,y] < 96) then
+               inc(CountRA1)
+            else if (Result.Data[Frame].FrameImage[x,y] > 175) and (Result.Data[Frame].FrameImage[x,y] < 192) then
+               inc(CountTD);
+         end;
+      // Now, we do the comparison.
+      if (CountRA1 > CountTD) then
+         Result.SHPGame := sgRA1
+      else if (CountTD > CountRA1) then
+         Result.SHPGame := sgTD;
+
+   end;
+
+   if Result.SHPType <> stCameo then
+   if extractfileext(Name) = '.des' then
+   begin
+      Result.SHPType := stdes;
+      Result.SHPGame := sgTD;
+   end
+   else if extractfileext(Name) = '.tem' then
+   begin
+      Result.SHPType := sttem;
+      Result.SHPGame := sgRA1;
+   end
+   else if extractfileext(Name) = '.sno' then
+   begin
+      Result.SHPType := stsno;
+      Result.SHPGame := sgRA1;
+   end
+   else if extractfileext(Name) = '.win' then
+   begin
+      Result.SHPType := stwin;
+      Result.SHPGame := sgTD;
+   end
+   else if extractfileext(Name) = '.int' then
+   begin
+      Result.SHPType := stint;
+      Result.SHPGame := sgRA1;
+   end;
+end;
+
+function C_SHPTD.saveSHP(const SHP : TSHP; const Filename : String): Boolean;
+var
+   F : File;
+   Written : Integer;
+   Frame,x,y: longword;
+   Dummy : longword;
+   FrameHeaders : TSHPTDOffsets;
+   CurrentOffset : word;
+   LastSize : word;
+   CurrentDB : TDatabuffer;
+   Databuffer : array of TDatabuffer;
+   PSource,PDest,PNewData : PByte;
+begin
+   // Not saved yet.
+   Result := false;
+
+   // Prepare the file.
+   Assign(F,Filename);  // Open file
+   Rewrite(F,1); // Goto first byte?
+
+   // Let's write the header.
+   Blockwrite(F,SHP.Header.NumImages,sizeof(word),Written);
+   Dummy := 0; // My stupid way to write 0 with Blockwrite
+   Blockwrite(F,Dummy,sizeof(longword),Written);
+   Blockwrite(F,SHP.Header.Width,sizeof(word),Written);
+   Blockwrite(F,SHP.Header.Height,sizeof(word),Written);
+   Blockwrite(F,Dummy,sizeof(longword),Written);
+
+   // Now, the frame header.
+   SetLength(FrameHeaders,SHP.Header.NumImages+1);
+   SetLength(Databuffer,SHP.Header.NumImages);
+   CurrentOffset := 0;
+   LastSize := 14 + ((SHP.Header.NumImages+2) * sizeof(TSHPTDOffsetUnit));
+   for Frame := 1 to SHP.Header.NumImages do
+   begin
+      FrameHeaders[Frame-1].Zero := 0;
+      FrameHeaders[Frame-1].Compression := $80;
+      FrameHeaders[Frame-1].ReOffset := 0;
+      FrameHeaders[Frame-1].Zero2 := 0;
+      FrameHeaders[Frame-1].CompressionExtra := 0;
+      // We have to figure out now the location
+      CurrentOffset := CurrentOffset + LastSize;
+      FrameHeaders[Frame-1].Offset := CurrentOffset;
+      // copy frame to databuffer.
+      SetLength(CurrentDB,0);
+      SetLength(CurrentDB,SHP.Header.Width * SHP.Header.Height);
+      for x := 0 to SHP.Header.Width-1 do
+         for y := 0 to SHP.Header.Height-1 do
+            CurrentDB[(y * SHP.Header.Width) + x] := SHP.Data[Frame].FrameImage[x,y];
+      // prepare to encode databuffer.
+      SetLength(Databuffer[Frame-1],SHP.Header.Width * SHP.Header.Height);
+      PSource := PByte(CurrentDB);
+      // Get memory for it. (compression can be bigger on rare cases)
+      GetMem(PNewData,SHP.Header.Width * SHP.Header.Height);
+      PDest := PNewData;
+      // Get size and encode it.
+//      ShowMessage('Encoding Frame ' + IntToStr(Frame));
+      LastSize := Encode80(PSource,PDest,SHP.Header.Width * SHP.Header.Height);
+//      ShowMessage('End Of Encoding Frame ' + IntToStr(Frame));
+      SetLength(Databuffer[Frame-1],LastSize);
+      PDest := PNewData;
+      for x := 0 to LastSize-1 do
+      begin
+         Databuffer[Frame-1,x] := PDest^;
+         inc(PDest);
+      end;
+      FreeMem(PNewData);
+   end;
+   // The last FrameHeader
+   FrameHeaders[SHP.Header.NumImages].Zero := 0;
+   FrameHeaders[SHP.Header.NumImages].Compression := 0;
+   FrameHeaders[SHP.Header.NumImages].ReOffset := 0;
+   FrameHeaders[SHP.Header.NumImages].Zero2 := 0;
+   FrameHeaders[SHP.Header.NumImages].CompressionExtra := 0;
+   CurrentOffset := CurrentOffset + LastSize;
+   // That should point to the last byte before the end of the file.
+   FrameHeaders[SHP.Header.NumImages].Offset := CurrentOffset;
+
+   // Now we record all frame headers.
+   for Frame := 0 to SHP.Header.NumImages do
+   begin
+      Blockwrite(F,FrameHeaders[Frame],sizeof(FrameHeaders[Frame]),Written);
+   end;
+
+   // The aditional dummy stuff
+   Blockwrite(F,Dummy,sizeof(longword),Written);
+   Blockwrite(F,Dummy,sizeof(longword),Written);
+
+   // Now we record all databuffers.
+   for Frame := 0 to SHP.Header.NumImages-1 do
+   begin
+      for x := Low(Databuffer[Frame]) to High(Databuffer[Frame]) do
+      begin
+         Blockwrite(F,Databuffer[Frame,x],sizeof(byte),Written);
+      end;
+   end;
+   CloseFile(F);
+end;
+
+
+function C_SHPTD.HuntMyOffset(const Offset:word; const MyFrame: Integer; const FrameHeaders : TSHPTDOffsets): Integer;
+var
+   Counter: Integer;
+begin
+   Counter := MyFrame;
+   while Counter > -1 do
+   begin
+      if Offset = FrameHeaders[Counter].Offset then
+      begin
+         Result := Counter;
+         exit;
+      end;
+      dec(Counter);
+   end;
+   Result := Counter;
+end;
+
+end.

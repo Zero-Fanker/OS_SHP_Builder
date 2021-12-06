@@ -1,0 +1,385 @@
+unit SHP_Image_Save_Load;
+
+interface
+
+uses
+     Graphics,Jpeg,PCXCtrl, SysUtils, GifImage,PNGImage,TARGA, Dialogs,SHP_File,Palette;
+
+function GetBMPFromImageFile(filename : string) : TBitmap; overload;
+function GetBMPFromImageFile(filename : string; Frame : Integer) : TBitmap; overload;
+function SaveImageFileFromBMP(filename : string; Bmp : TBitmap) : boolean;
+function GetBMPFromJPGImageFile(filename : string) : TBitmap;
+function GetBMPFromPCXImageFile(filename : string) : TBitmap;
+function GetBMPFromGIFImageFile(filename : string; Frame: Integer) : TBitmap;
+function GetBMPFromPNGImageFile(filename : string) : TBitmap;
+function GetBMPFromTGAImageFile(filename : string) : TBitmap;
+Procedure SaveBMPToJpegImageFile(const Bmp : TBitmap; JpgFileName: String);
+function SaveBMPToGIFImageFile(const Bmp : array of TBitmap; FileName: String; Loop : Boolean; Transparency : Boolean; Colour0 : TColor): Boolean; overload;
+Procedure SaveBMPToGIFImageFile(const Bmp : TBitmap; FileName: String); overload;
+function SaveBMPToGIFImageFile(const Bmp : array of TBitmap; FileName: String; Loop : Boolean; Transparency : Boolean; Palette : TPalette): Boolean; overload;
+Procedure SaveBMPToPngImageFile(const Bmp : TBitmap; FileName: String);
+Procedure SaveBMPToTGAImageFile(const Bmp : TBitmap; FileName: String);
+function GetNumberOfFramesFromGif(filename : string): Integer;
+function GetTransparentFromGIFFile(const Filename : string): TColor;
+function GetTransparentFromPNGFile(const Filename : string): TColor;
+function GetTransparentFromBMP(const Filename: string): TColor;
+
+implementation
+
+
+function GetBMPFromTGAImageFile(filename : string) : TBitmap;
+var
+   Bitmap: TBitmap;
+begin
+   Bitmap := TBitmap.Create;
+   Result := TBitmap.Create;
+
+   LoadFromFileX(Filename,Bitmap);
+
+   Result.Assign(Bitmap);
+   Bitmap.Free;
+end;
+
+function GetBMPFromPNGImageFile(filename : string) : TBitmap;
+var
+   PNGImage: TPNGObject;
+   Bitmap: TBitmap;
+begin
+   Bitmap := TBitmap.Create;
+   PNGImage := TPNGObject.Create;
+
+   PNGImage.LoadFromFile(Filename);
+   Bitmap.Assign(PNGImage);
+
+   PNGImage.Free;
+   result := Bitmap;
+end;
+
+function GetBMPFromGIFImageFile(filename : string; Frame: Integer) : TBitmap;
+var
+   GIFImage: TGIFImage;
+   Bitmap: TBitmap;
+begin
+   Bitmap := TBitmap.Create;
+   GIFImage := TGIFImage.Create;
+
+   GIFImage.AspectRatio := 0;
+   GIFImage.LoadFromFile(Filename);
+   Bitmap.Width := GIFImage.Header.Width;
+   Bitmap.Height := GIFImage.Header.Height;
+   Bitmap.Canvas.Brush.Color := GIFImage.BackgroundColor;
+   Bitmap.Canvas.FillRect(Bitmap.Canvas.ClipRect);
+   if not GifImage.Images[Frame].Empty then
+      Bitmap.Canvas.CopyRect(GIFImage.Images[Frame].BoundsRect,GIFImage.Images[Frame].Bitmap.Canvas,GIFImage.Images[Frame].ClientRect);
+
+   GIFImage.Free;
+   result := Bitmap;
+end;
+
+function GetBMPFromJPGImageFile(filename : string) : TBitmap;
+var
+   JPEGImage: TJPEGImage;
+   Bitmap: TBitmap;
+begin
+   Bitmap := TBitmap.Create;
+   JPEGImage := TJPEGImage.Create;
+
+   JPEGImage.LoadFromFile(Filename);
+   Bitmap.Assign(JPEGImage);
+
+   JPEGImage.Free;
+   result := Bitmap;
+end;
+
+function GetBMPFromPCXImageFile(filename : string) : TBitmap;
+var
+   PCXBitmap: TPCXBitmap;
+   Bitmap: TBitmap;
+begin
+   Bitmap := TBitmap.Create;
+   PCXBitmap := TPCXBitmap.Create;
+
+   try
+      try
+         PCXBitmap.LoadFromFile(Filename);
+         Bitmap.Assign(TBitmap(PCXBitmap));
+      except
+         ShowMessage('Warning: PCX support on OS SHP Builder is limited and it does not support this file. You will not be able to do any operation with it. You will get unknown errors. Select another file.');
+      end;
+   finally
+      PCXBitmap.Free;
+   end;
+   result := Bitmap;
+end;
+
+function GetBMPFromImageFile(filename : string) : TBitmap; overload;
+var
+   Bmp : TBitmap;
+   Ext : string;
+begin
+   Bmp := TBitmap.Create;
+
+   Ext := ansilowercase(extractfileext(filename));
+
+   if Ext = '.bmp' then
+      Bmp.LoadFromFile(Filename);
+
+   if (Ext = '.jpg') or (Ext = '.jpeg') then
+      bmp := GetBMPFromJPGImageFile(Filename);
+
+   if (Ext = '.pcx') then
+      bmp := GetBMPFromPCXImageFile(Filename);
+
+   if (Ext = '.gif') then
+      bmp := GetBMPFromGIFImageFile(Filename,0);
+
+   if (Ext = '.png') then
+      bmp := GetBMPFromPNGImageFile(Filename);
+
+   if (Ext = '.tga') then
+      bmp := GetBMPFromTGAImageFile(Filename);
+
+   result := bmp;
+end;
+
+function GetBMPFromImageFile(filename : string; Frame : Integer) : TBitmap; overload;
+var
+   Bmp : TBitmap;
+   Ext : string;
+begin
+   Bmp := TBitmap.Create;
+
+   Ext := ansilowercase(extractfileext(filename));
+
+   if (Ext = '.gif') then
+      bmp := GetBMPFromGIFImageFile(Filename,Frame);
+
+   result := bmp;
+end;
+
+function GetNumberOfFramesFromGif(filename : string): Integer;
+var
+   GIF : TGIFImage;
+begin
+   GIF := TGIFImage.Create;
+   GIF.LoadFromFile(Filename);
+   Result :=  GIF.Images.Count;
+   If Result = 0 then
+      Result := 1;
+   GIF.Free;
+end;
+
+Procedure SaveBMPToTGAImageFile(const Bmp : TBitmap; FileName: String);
+begin
+   SaveToFileX(FileName,Bmp,2);
+end;
+
+Procedure SaveBMPToPngImageFile(const Bmp : TBitmap; FileName: String);
+var
+   PNG: TPNGObject;
+begin
+   Png := TPNGObject.Create;
+   try
+      Png.Assign(Bmp);
+      Png.SaveToFile(FileName);
+   finally
+      Png.Free;
+   end;
+end;
+
+function SaveBMPToGIFImageFile(const Bmp : array of TBitmap; FileName: String; Loop : Boolean; Transparency : Boolean; Colour0 : TColor): Boolean; overload;
+   procedure AddBitmap(const Bitmap:TBitmap; var GIF: TGifImage; Transparency: Boolean; Counter : Integer; Colour : TColor);
+   var
+      GIFExtension : TGIFGraphicControlExtension;
+   begin
+      Gif.Add(Bmp[Counter]);
+      GifExtension := TGIFGraphicControlExtension.Create(Gif.Images[Counter]);
+      GifExtension.Delay := 10;
+      if Transparency then
+      begin
+         GifExtension.TransparentColorIndex := Gif.GlobalColorMap.IndexOf(Colour);
+         GifExtension.Transparent := true;
+         GifExtension.Disposal := dmBackground;
+      end;
+      Gif.Images[Counter].Extensions.Add(GifExtension);
+   end;
+
+
+var
+   Gif : TGifImage;
+   Counter : Integer;
+   GIFAppExtNSLoop : TGIFAppExtNSLoop;
+begin
+   result := false;
+   Gif := TGifimage.Create;
+   Gif.GlobalColorMap.Add(Colour0);
+   For Counter := 0 to High(Bmp) do
+   begin
+      try
+         AddBitmap(Bmp[Counter],GIF,Transparency,Counter,Colour0);
+      except
+         Gif.Free;
+         exit;
+      end;
+   end;
+   try
+      Gif.OptimizeColorMap;
+      if loop then
+      begin
+         GIFAppExtNSLoop := TGIFAppExtNSLoop.Create(Gif.Images[Gif.Images.Count-1]);
+         GIFAppExtNSLoop.Loops := 0;
+         Gif.Images[Gif.Images.Count-1].Extensions.Add(GIFAppExtNSLoop);
+      end;
+      Gif.SaveToFile(Filename);
+      Result := true;
+   finally
+      Gif.Free;
+   end;
+end;
+
+// New Save Gif
+function SaveBMPToGIFImageFile(const Bmp : array of TBitmap; FileName: String; Loop : Boolean; Transparency : Boolean; Palette : TPalette): Boolean; overload;
+   procedure AddBitmap(const Bitmap:TBitmap; var GIF: TGifImage; Transparency: Boolean; Counter : Integer; Colour : TColor);
+   var
+      GIFExtension : TGIFGraphicControlExtension;
+   begin
+      Gif.Add(Bmp[Counter]);
+      GifExtension := TGIFGraphicControlExtension.Create(Gif.Images[Counter]);
+      GifExtension.Delay := 10;
+      if Transparency then
+      begin
+         GifExtension.TransparentColorIndex := Gif.GlobalColorMap.IndexOf(Colour);
+         GifExtension.Transparent := true;
+         GifExtension.Disposal := dmBackground;
+      end;
+      Gif.Images[Counter].Extensions.Add(GifExtension);
+   end;
+
+
+var
+   Gif : TGifImage;
+   Counter : Integer;
+   GIFAppExtNSLoop : TGIFAppExtNSLoop;
+begin
+   result := false;
+   Gif := TGifimage.Create;
+   For Counter := 0 to 255 do
+      Gif.GlobalColorMap.Add(Palette[Counter]);
+   For Counter := 0 to High(Bmp) do
+   begin
+      try
+         AddBitmap(Bmp[Counter],GIF,Transparency,Counter,Palette[0]);
+      except
+         Gif.Free;
+         exit;
+      end;
+   end;
+   try
+//      Gif.OptimizeColorMap;
+      if loop then
+      begin
+         GIFAppExtNSLoop := TGIFAppExtNSLoop.Create(Gif.Images[Gif.Images.Count-1]);
+         GIFAppExtNSLoop.Loops := 0;
+         Gif.Images[Gif.Images.Count-1].Extensions.Add(GIFAppExtNSLoop);
+      end;
+      Gif.SaveToFile(Filename);
+      Result := true;
+   finally
+      Gif.Free;
+   end;
+end;
+
+Procedure SaveBMPToGIFImageFile(const Bmp : TBitmap; FileName: String); overload;
+var
+  GIF: TGIFImage;
+begin
+  GIF := TGIFImage.Create;
+  try
+    GIF.Assign(Bmp);
+    GIF.OptimizeColorMap;
+    GIF.SaveToFile(FileName);
+  finally
+    GIF.Free;
+  end;
+end;
+
+Procedure SaveBMPToJpegImageFile(const Bmp : TBitmap; JpgFileName: String);
+var
+  Jpg: TJPEGImage;
+begin
+  Jpg := TJPEGImage.Create;
+  try
+    Jpg.Assign(Bmp);
+    Jpg.CompressionQuality := 100;
+    Jpg.SaveToFile(JpgFileName);
+  finally
+    Jpg.Free;
+  end;
+end;
+
+function SaveImageFileFromBMP(filename : string; Bmp : TBitmap) : boolean;
+var
+   Ext : string;
+begin
+   Ext := ansilowercase(extractfileext(filename));
+   result := true;
+
+   try
+      if Ext = '.bmp' then
+         Bmp.SaveToFile(Filename)
+      else if (Ext = '.jpg') or (Ext = '.jpeg') then
+         SaveBMPToJpegImageFile(Bmp,Filename)
+      else if Ext = '.gif' then
+         SaveBMPToGIFImageFile(Bmp,Filename)
+      else if Ext = '.png' then
+         SaveBMPToPngImageFile(Bmp,Filename)
+      else if Ext = '.tga' then
+         SaveBMPToTGAImageFile(Bmp,Filename)
+      else
+         result := false;
+   except
+      result := false;
+   end;
+end;
+
+
+function GetTransparentFromPNGFile(const Filename : string): TColor;
+var
+   PNG: TPNGObject;
+begin
+   PNG := TPNGObject.Create;
+   PNG.LoadFromFile(Filename);
+   Result := PNG.TransparentColor;
+   PNG.Free;
+end;
+
+function GetTransparentFromGIFFile(const Filename : string): TColor;
+var
+   GIF: TGIFImage;
+begin
+   GIF := TGIFImage.Create;
+   GIF.LoadFromFile(Filename);
+   Result := GIF.Header.BackgroundColor;
+   GIF.Free;
+end;
+
+function GetTransparentFromBMP(const Filename: string): TColor;
+var
+   ext : string;
+   Bitmap : TBitmap;
+begin
+   ext := AnsiLowerCase(ExtractFileExt(Filename));
+
+   if ext = '.gif' then
+      Result := GetTransparentFromGIFFile(Filename)
+   else if ext = '.png' then
+      Result := GetTransparentFromPNGFile(Filename)
+   else // get Pixel (0,0);
+   begin
+      Bitmap := GetBMPFromImageFile(Filename);
+      Result := Bitmap.Canvas.Pixels[0,0];
+      Bitmap.Free;
+   end;
+end;
+
+end.

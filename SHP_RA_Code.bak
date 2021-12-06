@@ -1,0 +1,1440 @@
+unit SHP_RA_Code;
+
+// The purpose of this file is to encode and decode SHP TD
+// files. We are using code from:
+
+// XCC Utilities, created by
+// Olaf Van Der Spek
+
+interface
+
+uses SHP_File, Dialogs, SysUtils;
+
+// Function List:
+
+// Auxiliary functions
+function read_w(var Source : PByte): Word;
+procedure write_w(data : Word; var Dest : PByte);
+procedure flush_copy(var Dest : PByte; const Source : PByte; var Copy_from : PByte);
+function get_run_length(const Source : PByte; var s_end : PByte): Integer;
+procedure get_same(const Source: PByte; const r: PByte; const SourceEnd: PByte; var p: PByte; var cb_p: Integer); //assembler;
+procedure new_get_same(const Source: PByte; const r: PByte; const SourceEnd: PByte; var p: PByte; var cb_p: Integer);
+
+// Auxiliary Format 40 encoding functions:
+procedure write_v40(data : Byte; Counter : Integer; var Dest : PByte);
+procedure write40_c0(var Dest : PByte; Counter : Integer; data : Integer);
+procedure write40_c1(var Dest : PByte; Counter : Integer; const Source : PByte);
+procedure write40_c2(var Dest : PByte; Counter : Integer);
+procedure write40_c3(var Dest: PByte; Counter : Integer; const Source : PByte);
+procedure write40_c4(Dest : PByte; Counter : Integer; data : Integer);
+procedure write40_c5(var Dest : PByte; Counter : Integer);
+procedure write40_copy(var Dest : PByte; Counter : Integer; var Source : PByte);
+procedure write40_fill(var Dest : PByte; Counter : Integer; data : Integer);
+procedure write40_skip(var Dest : PByte; Counter: Integer);
+
+// Encode 40 functions
+function encode40(var LastSource : PByte; var Source: PByte; var Dest: PByte; cb_s : Integer): Integer;
+function encode40_y(var LastSource: PByte; var Source: PByte; var Dest : PByte; cb_s : Integer): Integer;
+function encode40_z(var LastSource: PByte; var Source: PByte; var Dest : PByte; cb_s: Integer): Integer;
+
+// Decode 40 functions
+function Decode40(const Source : PByte; var Dest : PByte): Integer;
+function Decode40Tri(const Source : PByte; const XorDest : PByte; var Dest : PByte): Integer;
+
+// Auxiliary Format 80 encoding functions
+procedure write_v80(data : byte; Counter: Integer; var Dest: PByte);
+procedure write80_c0(var Dest: PByte; Counter: Integer; p: Integer);
+procedure write80_c1(var Dest: PByte; Counter: Integer; var Source : PByte);
+procedure write80_c2(var Dest: PByte; Counter: Integer; p: Integer);
+procedure write80_c3(var Dest: PByte; Counter: Integer; data: Integer);
+procedure write80_c4(var Dest: PByte; Counter: Integer; p: Integer);
+procedure flush_c1(var Dest: PByte; const Source: PByte; var copy_from: PByte);
+
+// Encode 80 functions
+function encode80(const Source: PByte; var Dest: PByte; cb_s: Integer): Integer;
+function encode80_y(const Source: PByte; var Dest: PByte; cb_s: Integer): Integer;
+
+// Decode 80 functions
+function decode80c(const image_in: TDatabuffer; var image_out: TDatabuffer; cb_in: Integer): Integer;
+function decode80(const image_in: TDatabuffer; var image_out: TDatabuffer): Integer;
+function decode80r(const image_in: TDatabuffer; var image_out: TDatabuffer): Integer;
+function decode80d(const image_in: PByte; var image_out: PByte; cb_in: Integer): Integer;
+function decode80p(const image_in: PByte; var image_out: PByte): Integer;
+
+
+
+implementation
+
+function read_w(var Source : PByte): Word;
+begin
+	Result := Word(PWord(Source)^);
+	inc(Source,2);
+end;
+
+procedure write_w(data : Word; var Dest : PByte);
+begin
+	Dest^ := data and $ff;
+   inc(Dest);
+	Dest^ := data shr 8;
+   inc(Dest);
+end;
+
+procedure write_v40(data : Byte; Counter : Integer; var Dest : PByte);
+var
+   c_write : Integer;
+begin
+	if (data = 0) then
+	begin
+		while (Counter <> 0) do
+		begin
+			if (Counter < $80) then
+			begin
+				Dest^ := $80 or Counter;
+            inc(Dest);
+				Counter := 0;
+			end
+			else
+			begin
+            if (Counter < $8000) then
+				   c_write := counter
+            else
+               c_write := $7fff;
+				Dest^ := $80;
+            inc(Dest);
+				write_w(c_write, Dest);
+				dec(Counter,c_write);
+			end;
+		end;
+   end
+	else
+	begin
+		while (Counter <> 0) do
+		begin
+			if (Counter < $100) then
+			begin
+				Dest^ := $00;
+            inc(Dest);
+				Dest^ := Counter;
+            inc(Dest);
+				Counter := 0;
+			end
+			else
+			begin
+            if (Counter < $4000) then
+               c_write := Counter
+            else
+               c_write := $3fff;
+				Dest^ := $80;
+            inc(Dest);
+				write_w($c000 or c_write, Dest);
+				dec(Counter,c_write);
+			end;
+			Dest^ := data;
+         inc(Dest);
+		end;
+	end;
+end;
+
+procedure write40_c0(var Dest : PByte; Counter : Integer; data : Integer);
+begin
+	Dest^ := 0;
+   inc(Dest);
+	Dest^ := Counter;
+   inc(Dest);
+	Dest^ := data;
+   inc(Dest);
+end;
+
+procedure write40_c1(var Dest : PByte; Counter : Integer; const Source : PByte);
+begin
+	Dest^ := Counter;
+   inc(Dest);
+	Move(Source, Dest, Counter);
+	inc(Dest,Counter);
+end;
+
+procedure write40_c2(var Dest : PByte; Counter : Integer);
+begin
+	Dest^ := $80;
+   inc(Dest);
+	write_w(Counter, Dest);
+end;
+
+procedure write40_c3(var Dest: PByte; Counter : Integer; const Source : PByte);
+begin
+	Dest^ := $80;
+   inc(Dest);
+	write_w($8000 or Counter, Dest);
+	Move(Source, Dest, Counter);
+	inc(Dest,Counter);
+end;
+
+procedure write40_c4(Dest : PByte; Counter : Integer; data : Integer);
+begin
+	Dest^ := $80;
+   inc(Dest);
+	write_w($c000 or Counter, Dest);
+	Dest^ := data;
+   inc(Dest);
+end;
+
+procedure write40_c5(var Dest : PByte; Counter : Integer);
+begin
+	Dest^ := $80 or Counter;
+   inc(Dest);
+end;
+
+procedure write40_copy(var Dest : PByte; Counter : Integer; var Source : PByte);
+var
+   c_write : Integer;
+begin
+	while (Counter <> 0) do
+	begin
+		if (Counter < $80) then
+		begin
+			write40_c1(Dest, Counter, Source);
+			Counter := 0;
+		end
+		else
+		begin
+         if (Counter < $4000) then
+			   c_write := Counter
+         else
+            c_write := $3fff;
+			write40_c3(Dest, c_write, Source);
+			inc(Source,c_write);
+			dec(Counter,c_write);
+		end;
+	end;
+end;
+
+procedure write40_fill(var Dest : PByte; Counter : Integer; data : Integer);
+var
+   c_write : Integer;
+begin
+	while (Counter <> 0) do
+	begin
+		if (Counter < $100) then
+		begin
+			write40_c0(Dest, Counter, data);
+			Counter := 0;
+		end
+		else
+		begin
+         if (Counter < $4000) then
+            c_write := Counter
+         else
+			   c_write := $3fff;
+			write40_c4(Dest, c_write, data);
+			dec(Counter,c_write);
+		end;
+	end;
+end;
+
+procedure write40_skip(var Dest : PByte; Counter: Integer);
+var
+   c_write : Integer;
+begin
+	while (Counter <> 0) do
+	begin
+		if (Counter < $80) then
+		begin
+			write40_c5(Dest, Counter);
+			Counter := 0;
+		end
+		else
+		begin
+         if (Counter < $8000) then
+            c_write := Counter
+         else
+			   c_write := $7fff;
+			write40_c2(Dest, c_write);
+			dec(Counter,c_write);
+		end;
+	end;
+end;
+
+procedure flush_copy(var Dest : PByte; const Source : PByte; var Copy_from : PByte);
+begin
+	if (copy_from <> nil) then
+	begin
+		write40_copy(Dest, integer(Source) - Integer(Copy_from), Copy_from);
+		copy_from := nil;
+	end;
+end;
+
+function get_run_length(const Source : PByte; var s_end : PByte): Integer;
+var
+   Counter, data : Integer;
+   Current : PByte;
+begin
+	Counter := 1;
+   Current := Source;
+	data := Source^;
+   inc(Current);
+	while (Integer(Current) < Integer(s_end)) and (Current^ = data) do
+   begin
+      inc(Current);
+		inc(Counter);
+   end;
+	Result := Counter;
+end;
+
+function encode40(var LastSource : PByte; var Source: PByte; var Dest: PByte; cb_s : Integer): Integer;
+var
+   s : PByte;
+   a, s_end,r,w,copy_from : PByte; // These are just help pointers
+   Size, data, t : Integer;
+begin
+	// full compression
+   Getmem(s,cb_s);
+	begin
+		a := s;
+		Size := cb_s;
+		while (size <> 0) do
+      begin
+         dec(Size);
+			a^ := LastSource^ xor Source^;
+         inc(a);
+         inc(LastSource);
+         inc(Source);
+      end;
+	end;
+	s_end := s;
+   inc(s_end,cb_s);
+	r := s;
+	w := Dest;
+	copy_from := nil;
+	while (Integer(r) < Integer(s_end)) do
+	begin
+		data := r^;
+		t := get_run_length(r, s_end);
+		if (data = 0) then
+		begin
+			flush_copy(w, r, Copy_from);
+			write40_skip(w, t);
+		end
+		else if (t > 2) then
+		begin
+			flush_copy(w, r, Copy_from);
+			write40_fill(w, t, data);
+		end
+		else
+		begin
+			if (Copy_from = nil) then
+				Copy_from := r;
+		end;
+		inc(r,t);
+	end;
+	flush_copy(w, r, Copy_from);
+	write40_c2(w, 0);
+   FreeMem(s);
+	Result := Integer(w) - Integer(Dest);
+end;
+
+function encode40_y(var LastSource: PByte; var Source: PByte; var Dest : PByte; cb_s : Integer): Integer;
+var
+   last_r,r,w : PByte; // some help variables named by Olaf
+   Counter: Integer;
+   last, data : byte;
+begin
+	// run length encoding
+	last_r := LastSource;
+	r := Source;
+	w := Dest;
+	Counter := 0;
+	last := not(last_r^ xor r^);
+
+	while (cb_s <> 0) do
+	begin
+      dec(cb_s);
+		data := last_r^ xor r^;
+      inc(last_r);
+      inc(r);
+		if (last = data) then
+			inc(Counter)
+		else
+		begin
+			write_v40(last, Counter, w);
+			Counter := 1;
+			last := data;
+		end;
+
+	end;
+	write_v40(last, Counter, w);
+	w^ := $80;
+   inc(w);
+	write_w($0000, w);
+	Result := Integer(w) - Integer(Dest);
+end;
+
+function encode40_z(var LastSource: PByte; var Source: PByte; var Dest : PByte; cb_s: Integer): Integer;
+var
+   last_r,r,w : PByte;   // help variables named by Olaf
+   c_write : Integer;
+begin
+	// no compression
+	last_r := LastSource;
+	r := Source;
+	w := Dest;
+	while (cb_s <> 0) do
+	begin
+      if (cb_s > $3fff) then
+         c_write := $3fff
+      else
+		   c_write := cb_s;
+		dec(cb_s,c_write);
+		w^ := $80;
+      inc(w);
+		w^ := c_write and $ff;
+      inc(w);
+		w^ := $80 or c_write shr 8;
+      inc(w);
+		while (c_write <> 0) do
+      begin
+         dec(c_write);
+			w^ := last_r^ xor r^;
+         inc(w);
+         inc(last_r);
+         inc(r);
+      end;
+	end;
+	w^ := $80;
+   inc(w);
+	w^ := $00;
+   inc(w);
+	w^ := $00;
+   inc(w);
+	Result := Integer(w) - Integer(Dest);
+end;
+
+function Decode40(const Source : PByte; var Dest : PByte): Integer;
+var
+   SP : PByte;
+   DP : PByte;
+   Counter : Integer;
+   Code : Integer;
+begin
+	{
+	0 fill 00000000 c v
+	1 copy 0ccccccc
+	2 skip 10000000 c 0ccccccc
+	3 copy 10000000 c 10cccccc
+	4 fill 10000000 c 11cccccc v
+	5 skip 1ccccccc
+	}
+
+	SP := Source;
+	DP := Dest;
+	while true do
+	begin
+		Code := SP^;
+      inc(SP);
+		if ((not Code) and $80) <> 0 then
+		begin
+			//bit 7 = 0
+			if (Code = 0) then
+			begin
+				//command 0 (00000000 c v): fill
+				Counter := SP^;
+            inc(SP);
+				Code := SP^;
+            inc(SP);
+				while (Counter > 0) do
+            begin
+               dec(Counter);
+					DP^ := DP^ xor Code;
+               inc(DP);
+            end;
+			end
+			else
+			begin
+				//command 1 (0ccccccc): copy
+				Counter := Code;
+				while (Counter > 0) do
+            begin
+               dec(Counter);
+					DP^ := DP^ xor SP^;
+               inc(DP);
+               inc(SP);
+            end;
+			end;
+
+		end
+		else
+		begin
+			//bit 7 = 1
+         Counter := Code and $7f;
+			if (Counter = 0) then
+			begin
+            Counter := read_w(SP);
+				Code := Counter shr 8;
+				if ((not code) and $80) <> 0 then
+				begin
+					//bit 7 = 0
+					//command 2 (10000000 c 0ccccccc): skip
+					if (Counter = 0) then
+               begin
+						// end of image
+                  Result := Integer(DP) - Integer(Dest);
+						exit;
+               end;
+					inc(DP,Counter);
+				end
+				else
+				begin
+					//bit 7 = 1
+					Counter := Counter and $3fff;
+					if ((not Code) and $40) <> 0 then
+					begin
+						//bit 6 = 0
+						//command 3 (10000000 c 10cccccc): copy
+						while (Counter > 0) do
+                  begin
+                     dec(Counter);
+							DP^ := DP^ xor SP^;
+                     inc(DP);
+                     inc(SP);
+                  end;
+					end
+					else
+					begin
+						//bit 6 = 1
+						//command 4 (10000000 c 11cccccc v): fill
+						Code := SP^;
+                  inc(SP);
+						while (Counter > 0) do
+                  begin
+                     dec(Counter);
+							DP^ := DP^ xor Code;
+                     inc(DP);
+                  end;
+					end;
+            end;
+			end
+			else
+			begin
+				//command 5 (1ccccccc): skip
+				inc(DP,Counter);
+			end;
+		end;
+	end;
+end;
+
+// Decode 40 adapted by Banshee for OS SHP Builder needs.
+// XCC copies the buffer while it decodes, OS SHP Builder has
+// to emulate this effect with an extra buffer.
+function Decode40Tri(const Source : PByte; const XorDest : PByte; var Dest : PByte): Integer;
+var
+   SP : PByte;
+   XP : PByte;
+   DP : PByte;
+   Counter : Integer;
+   Code : Integer;
+begin
+	{
+	0 fill 00000000 c v
+	1 copy 0ccccccc
+	2 skip 10000000 c 0ccccccc
+	3 copy 10000000 c 10cccccc
+	4 fill 10000000 c 11cccccc v
+	5 skip 1ccccccc
+	}
+
+	SP := Source;
+   XP := XorDest;
+	DP := Dest;
+	while true do
+	begin
+		Code := SP^;
+      inc(SP);
+		if ((not Code) and $80) <> 0 then
+		begin
+			//bit 7 = 0
+			if (Code = 0) then
+			begin
+				//command 0 (00000000 c v): fill
+				Counter := SP^;
+            inc(SP);
+				Code := SP^;
+            inc(SP);
+				while (Counter > 0) do
+            begin
+               dec(Counter);
+					DP^ := XP^ xor Code;
+               inc(XP);
+               inc(DP);
+            end;
+			end
+			else
+			begin
+				//command 1 (0ccccccc): copy
+				Counter := Code;
+				while (Counter > 0) do
+            begin
+               dec(Counter);
+					DP^ := XP^ xor SP^;
+               inc(XP);
+               inc(DP);
+               inc(SP);
+            end;
+			end;
+
+		end
+		else
+		begin
+			//bit 7 = 1
+         Counter := Code and $7f;
+			if (Counter = 0) then
+			begin
+            Counter := read_w(SP);
+				Code := Counter shr 8;
+				if ((not code) and $80) <> 0 then
+				begin
+					//bit 7 = 0
+					//command 2 (10000000 c 0ccccccc): skip
+					if (Counter = 0) then
+               begin
+						// end of image
+                  Result := Integer(DP) - Integer(Dest);
+						exit;
+               end;
+               while Counter > 0 do
+               begin
+                  DP^ := XP^;
+					   inc(DP);
+                  inc(XP);
+                  dec(Counter);
+               end;
+				end
+				else
+				begin
+					//bit 7 = 1
+					Counter := Counter and $3fff;
+					if ((not Code) and $40) <> 0 then
+					begin
+						//bit 6 = 0
+						//command 3 (10000000 c 10cccccc): copy
+						while (Counter > 0) do
+                  begin
+                     dec(Counter);
+							DP^ := XP^ xor SP^;
+                     inc(XP);
+                     inc(DP);
+                     inc(SP);
+                  end;
+					end
+					else
+					begin
+						//bit 6 = 1
+						//command 4 (10000000 c 11cccccc v): fill
+						Code := SP^;
+                  inc(SP);
+						while (Counter > 0) do
+                  begin
+                     dec(Counter);
+							DP^ := XP^ xor Code;
+                     inc(XP);
+                     inc(DP);
+                  end;
+					end;
+            end;
+			end
+			else
+			begin
+				//command 5 (1ccccccc): skip
+            while Counter > 0 do
+            begin
+               DP^ := XP^;
+				   inc(DP);
+               inc(XP);
+               dec(Counter);
+            end;
+			end;
+		end;
+	end;
+end;
+
+
+procedure write_v80(data : byte; Counter: Integer; var Dest: PByte);
+begin
+	if (Counter > 3) then
+	begin
+		Dest^ := $fe;
+      inc(Dest);
+		write_w(Counter, Dest);
+		Dest^ := data;
+      inc(Dest);
+	end
+	else if (Counter > 0) then
+	begin
+		Dest^ := $80 or Counter;
+      inc(Dest);
+		while (Counter > 0) do
+      begin
+         dec(Counter);
+			Dest^ := data;
+         inc(Dest);
+      end;
+	end;
+end;
+
+procedure get_same(const Source: PByte; const r: PByte; const SourceEnd: PByte; var p: PByte; var cb_p: Integer); assembler; register;
+	asm
+		      push	esi
+		      push	edi
+            mov		eax, SourceEnd     // Prepare SourceEnd
+		      mov		ebx, Source        // Prepare Source
+		      xor		ecx, ecx           // Who is ecx? Gets 0.
+		      mov		edi, p             // Prepare p.
+		      mov		[edi], ecx         // set p[0] = 0;
+		      dec		ebx
+@@next_s:   inc		ebx   // This part is a loop. If Source doesnt reach 'r', go to @@next, otherwise, say bye bye. Edx gets XORed at the process.
+		      xor		edx, edx   // EDX gets 0.
+		      mov		esi, r
+		      mov		edi, ebx
+		      cmp		edi, esi
+		      jnb		@@end
+@@next:     inc		edx   // EDX increases. (seems like a counter)
+		      cmp		esi, eax
+		      jnb		@@end_line // also a loop
+		      cmpsb
+		      je		@@next
+@@end_line: dec		edx
+		      cmp		edx, ecx
+		      jl		@@next_s
+		      mov		ecx, edx
+		      mov		edi, p
+		      mov		[edi], ebx
+		      jmp		@@next_s
+@@end:      mov		edi, cb_p
+		      mov		[edi], ecx
+		      pop		edi
+		      pop		esi
+end;
+
+// Based on the purpose of the function above, this is the
+// Delphi version for OS SHP Builder written by Banshee
+// Special thanks for Olaf Van Der Spek for explaining the
+// purpose of his function above, but I'm not fully following
+// his logic.
+
+// Olaf van der Spek says:
+// The input is s <= r < s_end, output is p and cb_p
+// It searches for the longest string that starts < r that
+// matches the string that starts at r (and ends before s_end)
+procedure new_get_same(const Source: PByte; const r: PByte; const SourceEnd: PByte; var p: PByte; var cb_p: Integer);
+var
+   p1,p2,p1i,p2i : PByte;
+   counter : integer;
+   question: string;
+   F : Text;
+begin
+   p := Source;
+   p1 := Source;
+   p2 := r;
+   counter := 0;
+   cb_p := 0;
+
+   while ((Integer(p1) + cb_p) < Integer(r)) and ((Integer(p2) + cb_p) < Integer(SourceEnd)) do
+   begin
+      if p1^ = p2^ then
+      begin // if equal
+         p1i := p1;
+         p2i := p2;
+         inc(p1i,cb_p);
+         inc(p2i,cb_p);
+         // we have to confirm the candidate.
+         Counter := cb_p;
+         while (p1i^ = p2i^) and (Counter > 0) do
+         begin
+            dec(Counter);
+            dec(p1i);
+            dec(p2i);
+         end;
+         if Counter = 0 then
+         begin // we have a new record; We have to find the new record;
+            p := p1;
+            p1i := p1;
+            p2i := p2;
+            inc(cb_p);
+            inc(p1i,cb_p);
+            inc(p2i,cb_p);
+            Counter := cb_p;
+            while ((Integer(p1i) < Integer(r)) and (Integer(p2i) <= Integer(SourceEnd))) do
+            begin
+               if p1i^ = p2i^ then
+               begin
+                  inc(Counter);
+                  inc(p1i);
+                  inc(p2i);
+               end
+               else
+               begin
+                  p2i := SourceEnd; // this ends loop.
+                  inc(p2i);
+               end;
+            end;
+            cb_p := counter;
+         end;
+      end;
+      counter := 0;
+      inc(p1);
+   end;
+{  // For Debug Purposes only
+   Assign(F,'writelog.txt');
+   if FileExists('writelog.txt') then
+      Append(F)
+   else
+   begin
+      ReWrite(F);
+      // Build question
+      question := 'Size = ' + IntToStr(Integer(SourceEnd) - Integer(Source)) + ' and Read = ' + IntToStr(Integer(r) - Integer(Source)) + '   ::::::::   ';
+      p1 := Source;
+      while (Integer(p1) <= Integer(SourceEnd)) do
+      begin
+         question := question + ' ' + IntToStr(p1^);
+         inc(p1);
+      end;
+      question := question + '      ::::::::::::        ';
+   end;
+   // Build Answer:
+   p1 := p;
+   Counter := cb_p;
+   question := question + 'New Try: Read = ' + IntToStr(Integer(r) - Integer(Source)) + ' which is a (' + IntToStr(r^) + ') + CB_P = ' + IntToStr(cb_p) + '          ::::::::::::::::::::::::::::    ';
+   while Counter > 0 do
+   begin
+      question := question + ' ' + IntToStr(p1^);
+      inc(p1);
+      dec(Counter);
+   end;
+   writeln(F,question);
+   CloseFile(F);}
+end;
+
+
+procedure write80_c0(var Dest: PByte; Counter: Integer; p: Integer);
+begin
+	Dest^ := (Counter - 3) shl 4 or p shr 8;
+   inc(Dest);
+	Dest^ := p and $ff;
+   inc(Dest);
+end;
+
+procedure write80_c1(var Dest: PByte; Counter: Integer; var Source : PByte);
+var
+   c_write : Integer;
+   i : Integer; // copy counter.
+begin
+   repeat
+	   if Counter < $40 then
+         c_write := Counter
+      else
+         c_write := $3f;
+		Dest^ := $80 or c_write;
+      inc(Dest);
+      i := c_write;
+      while i > 0 do
+      begin
+         Dest^ := Source^;
+   		inc(Source);
+   		inc(Dest);
+         dec(i);
+      end;
+		dec(Counter,c_write);
+   until (Counter = 0);
+end;
+
+procedure write80_c2(var Dest: PByte; Counter: Integer; p: Integer);
+begin
+	Dest^ := $c0 or (Counter - 3);
+   inc(Dest);
+	write_w(p, Dest);
+end;
+
+procedure write80_c3(var Dest: PByte; Counter: Integer; data: Integer);
+begin
+	Dest^ := $fe;
+   inc(Dest);
+	write_w(Counter, Dest);
+	Dest^ := data;
+   inc(Dest);
+end;
+
+procedure write80_c4(var Dest: PByte; Counter: Integer; p: Integer);
+begin
+	Dest^ := $ff;
+   inc(Dest);
+	write_w(Counter, Dest);
+	write_w(p, Dest);
+end;
+
+procedure flush_c1(var Dest: PByte; const Source: PByte; var copy_from: PByte);
+begin
+	if (copy_from <> nil) then
+	begin
+		write80_c1(Dest, Integer(Source) - Integer(copy_from), copy_from);
+		copy_from := nil;
+	end;
+end;
+
+function encode80(const Source: PByte; var Dest: PByte; cb_s: Integer): Integer;
+var
+   s_end,r,w,copy_from,p : PByte;
+   cb_p,t : Integer;
+   fake_source : PByte;
+begin
+	// full compression
+//   ShowMessage('New Frame');
+	s_end := Source;
+   inc(s_end,cb_s);
+	r := Source;
+	w := Dest;
+	copy_from := nil;
+   fake_source := nil;
+	while (Integer(r) < Integer(s_end)) do
+	begin
+		t := get_run_length(r, s_end);
+//      ShowMessage('Before Get Same: t = ' + IntToStr(t) + ': (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+		new_get_same(Source, r, s_end, p, cb_p);
+//      ShowMessage('After Get Same: cb_p = ' + IntToStr(cb_p) + ': (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+		if (t < cb_p) and (cb_p > 2) then
+		begin
+			flush_c1(w, r, copy_from);
+			if ((cb_p - 3) < 8) and ((Integer(r) - Integer(p)) < $1000) then
+         begin
+//            ShowMessage('Before Write 80 c0: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            try
+				   write80_c0(w, cb_p, Integer(r) - Integer(p));
+            except
+               ShowMessage('I crashed at write80_c0: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            end;
+         end
+			else if ((cb_p - 3) < $3e) then
+         begin
+//            ShowMessage('Before Write 80 c2: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            try
+				   write80_c2(w, cb_p, Integer(p) - Integer(Source));
+            except
+               ShowMessage('I crashed at write80_c2: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            end;
+         end
+			else
+         begin
+//            ShowMessage('Before Write 80 c4: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            try
+				   write80_c4(w, cb_p, Integer(p) - Integer(Source));
+            except
+               ShowMessage('I crashed at write80_c4: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            end;
+         end;
+			inc(r,cb_p);
+		end
+		else
+		begin
+			if (t < 3) then
+			begin
+				if (copy_from = nil) then
+					copy_from := r;
+			end
+			else
+			begin
+				flush_c1(w, r, copy_from);
+//            ShowMessage('write80_c3: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+            try
+				   write80_c3(w, t, r^);
+            except
+               ShowMessage('I crashed at write80_c3: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest))+ ')');
+            end;
+			end;
+			inc(r,t);
+		end;
+	end;
+	flush_c1(w, r, copy_from);
+//   ShowMessage('Write 80 c1: (Total: ' + IntToStr(cb_s) + ', Read: ' + IntToStr(Integer(r) - Integer(Source)) + ', Written: ' + IntToStr(Integer(w) - Integer(Dest)) + ')');
+   w^ := $80;
+   inc(w);
+	Result := Integer(w) - Integer(Dest);
+//   ShowMessage('End of Frame');
+end;
+
+function encode80_y(const Source: PByte; var Dest: PByte; cb_s: Integer): Integer;
+var
+   r,w : PByte;
+   Counter : Integer;
+   last,data : byte;
+begin
+	// run length encoding
+	r := Source;
+	w := Dest;
+	Counter := 0;
+	last := not r^;
+
+	while (cb_s <> 0) do
+	begin
+      dec(cb_s);
+		data := r^;
+      inc(r);
+		if (last = data) then
+			inc(Counter)
+		else
+		begin
+			write_v80(last, Counter, w);
+			Counter := 1;
+			last := data;
+		end;
+
+	end;
+	write_v80(last, Counter, w);
+	w^ := $80;
+   inc(w);
+	Result := Integer(w) - Integer(Dest);
+end;
+
+function decode80c(const image_in: TDatabuffer; var image_out: TDatabuffer; cb_in: Integer): Integer;
+var
+   copyp, readp, writep : PByte;
+   code, Counter : Integer;
+begin
+	{
+	0 copy 0cccpppp p
+	1 copy 10cccccc
+	2 copy 11cccccc p p
+	3 fill 11111110 c c v
+	4 copy 11111111 c c p p
+	}
+
+	readp := Addr(image_in);
+	writep := Addr(image_out);
+	while (true) do
+	begin
+		code := readp^;
+      inc(readp);
+		if ((not code) and $80) <> 0 then
+		begin
+			//bit 7 = 0
+			//command 0 (0cccpppp p): copy
+			Counter := (code shr 4) + 3;
+			Integer(copyp) := Integer(writep) - (((code and $f) shl 8) + readp^);
+         inc(readp);
+			while (Counter <> 0) do
+         begin
+            dec(Counter);
+				writep^ := copyp^;
+            inc(writep);
+            inc(copyp);
+         end;
+		end
+		else
+		begin
+			//bit 7 = 1
+			Counter := code and $3f;
+			if ((not code) and $40) <> 0 then
+			begin
+				//bit 6 = 0
+				if (Counter = 0) then
+					//end of image
+					break;
+				//command 1 (10cccccc): copy
+				while (Counter <> 0) do
+            begin
+               dec(Counter);
+					writep^ := readp^;
+               inc(writep);
+               inc(readp);
+            end;
+			end
+			else
+			begin
+				//bit 6 = 1
+				if (Counter < $3e) then
+				begin
+					//command 2 (11cccccc p p): copy
+					inc(Counter,3);
+					copyp := Addr(image_out[read_w(readp)]);
+					while (Counter <> 0) do
+               begin
+                  dec(Counter);
+						writep^ := copyp^;
+                  inc(writep);
+                  inc(copyp);
+               end;
+				end
+				else
+					if (Counter = $3e) then
+					begin
+						//command 3 (11111110 c c v): fill
+						Counter := read_w(readp);
+						code := readp^;
+                  inc(readp);
+						while (Counter <> 0) do
+                  begin
+                     dec(Counter);
+							writep^ := byte(code);
+                     inc(writep);
+                  end;
+					end
+					else
+					begin
+						//command 4 (copy 11111111 c c p p): copy
+						Counter := read_w(readp);
+						copyp := Addr(image_out[read_w(readp)]);
+						while (Counter <> 0) do
+                  begin
+                     dec(Counter);
+							writep^ := copyp^;
+                     inc(writep);
+                     inc(copyp);
+                  end;
+					end;
+			end;
+		end;
+	end;
+//	assert(cb_in == readp - image_in);
+	Result := Integer(writep) - Integer(Addr(image_out));
+end;
+
+function decode80d(const image_in: PByte; var image_out: PByte; cb_in: Integer): Integer;
+var
+   copyp, readp, writep : PByte;
+   code, Counter : Integer;
+begin
+	{
+	0 copy 0cccpppp p
+	1 copy 10cccccc
+	2 copy 11cccccc p p
+	3 fill 11111110 c c v
+	4 copy 11111111 c c p p
+	}
+
+	readp := image_in;
+	writep := image_out;
+	while (true) do
+	begin
+		code := readp^;
+      inc(readp);
+		if ((not code) and $80) <> 0 then
+		begin
+			//bit 7 = 0
+			//command 0 (0cccpppp p): copy
+			Counter := (code shr 4) + 3;
+			Integer(copyp) := Integer(writep) - (((code and $f) shl 8) + readp^);
+         inc(readp);
+			while (Counter <> 0) do
+         begin
+            dec(Counter);
+				writep^ := copyp^;
+            inc(writep);
+            inc(copyp);
+         end;
+		end
+		else
+		begin
+			//bit 7 = 1
+			Counter := code and $3f;
+			if ((not code) and $40) <> 0 then
+			begin
+				//bit 6 = 0
+				if (Counter = 0) then
+					//end of image
+					break;
+				//command 1 (10cccccc): copy
+				while (Counter <> 0) do
+            begin
+               dec(Counter);
+					writep^ := readp^;
+               inc(writep);
+               inc(readp);
+            end;
+			end
+			else
+			begin
+				//bit 6 = 1
+				if (Counter < $3e) then
+				begin
+					//command 2 (11cccccc p p): copy
+					inc(Counter,3);
+					copyp := image_out;
+               inc(copyp,read_w(readp));
+					while (Counter <> 0) do
+               begin
+                  dec(Counter);
+						writep^ := copyp^;
+                  inc(writep);
+                  inc(copyp);
+               end;
+				end
+				else
+					if (Counter = $3e) then
+					begin
+						//command 3 (11111110 c c v): fill
+						Counter := read_w(readp);
+						code := readp^;
+                  inc(readp);
+						while (Counter <> 0) do
+                  begin
+                     dec(Counter);
+							writep^ := byte(code);
+                     inc(writep);
+                  end;
+					end
+					else
+					begin
+						//command 4 (copy 11111111 c c p p): copy
+						Counter := read_w(readp);
+   					copyp := image_out;
+                  inc(copyp,read_w(readp));
+						while (Counter <> 0) do
+                  begin
+                     dec(Counter);
+							writep^ := copyp^;
+                     inc(writep);
+                     inc(copyp);
+                  end;
+					end;
+			end;
+		end;
+	end;
+//	assert(cb_in == readp - image_in);
+	Result := Integer(writep) - Integer(image_out);
+end;
+
+
+function decode80(const image_in: TDatabuffer; var image_out: TDatabuffer): Integer;
+var
+   cb_out : Integer;
+begin
+	{
+	0 copy 0cccpppp p
+	1 copy 10cccccc
+	2 copy 11cccccc p p
+	3 fill 11111110 c c v
+	4 copy 11111111 c c p p
+	}
+
+	asm
+		push	esi
+		push	edi
+		mov		ax, ds
+		mov		es, ax
+		mov		esi, image_in
+		mov		edi, image_out
+@next:
+		xor		eax, eax
+		lodsb
+		mov		ecx, eax
+		test	eax, $80
+		jnz		@c1c
+		shr		ecx, 4
+		add		ecx, 3
+		and		eax, $f
+		shl		eax, 8
+		lodsb
+		mov		edx, esi
+		mov		esi, edi
+		sub		esi, eax
+		jmp		@copy_from_destination
+@c1c:
+		and		ecx, $3f
+		test	eax, $40
+		jnz		@c2c
+		or		ecx, ecx
+		jz		@end
+		jmp		@copy_from_source
+@c2c:
+		xor		eax, eax
+		lodsw
+		cmp		ecx, $3e
+		je		@c3
+		ja		@c4
+		mov		edx, esi
+		mov		esi, image_out
+		add		esi, eax
+		add		ecx, 3
+		jmp		@copy_from_destination
+@c3:
+		mov		ecx, eax
+		lodsb
+		rep		stosb
+		jmp		@next
+@c4:
+		mov		ecx, eax
+		lodsw
+		mov		edx, esi
+		mov		esi, image_out
+		add		esi, eax
+@copy_from_destination:
+		rep		movsb
+		mov		esi, edx
+		jmp		@next
+@copy_from_source:
+		rep		movsb
+		jmp		@next
+@end:
+		sub		edi, image_out
+		mov		cb_out, edi
+		pop		edi
+		pop		esi
+	end;
+	Result := cb_out;
+end;
+
+function decode80p(const image_in: PByte; var image_out: PByte): Integer;
+var
+   cb_out : Integer;
+begin
+	{
+	0 copy 0cccpppp p
+	1 copy 10cccccc
+	2 copy 11cccccc p p
+	3 fill 11111110 c c v
+	4 copy 11111111 c c p p
+	}
+
+	asm
+		push	esi
+		push	edi
+		mov		ax, ds
+		mov		es, ax
+		mov		esi, image_in
+		mov		edi, image_out
+@next:
+		xor		eax, eax
+		lodsb
+		mov		ecx, eax
+		test	eax, $80
+		jnz		@c1c
+		shr		ecx, 4
+		add		ecx, 3
+		and		eax, $f
+		shl		eax, 8
+		lodsb
+		mov		edx, esi
+		mov		esi, edi
+		sub		esi, eax
+		jmp		@copy_from_destination
+@c1c:
+		and		ecx, $3f
+		test	eax, $40
+		jnz		@c2c
+		or		ecx, ecx
+		jz		@end
+		jmp		@copy_from_source
+@c2c:
+		xor		eax, eax
+		lodsw
+		cmp		ecx, $3e
+		je		@c3
+		ja		@c4
+		mov		edx, esi
+		mov		esi, image_out
+		add		esi, eax
+		add		ecx, 3
+		jmp		@copy_from_destination
+@c3:
+		mov		ecx, eax
+		lodsb
+		rep		stosb
+		jmp		@next
+@c4:
+		mov		ecx, eax
+		lodsw
+		mov		edx, esi
+		mov		esi, image_out
+		add		esi, eax
+@copy_from_destination:
+		rep		movsb
+		mov		esi, edx
+		jmp		@next
+@copy_from_source:
+		rep		movsb
+		jmp		@next
+@end:
+		sub		edi, image_out
+		mov		cb_out, edi
+		pop		edi
+		pop		esi
+	end;
+	Result := cb_out;
+end;
+
+function decode80r(const image_in: TDatabuffer; var image_out: TDatabuffer): Integer;
+var
+   cb_out : Integer;
+begin
+	{
+	0 copy 0cccpppp p
+	1 copy 10cccccc
+	2 copy 11cccccc p p
+	3 fill 11111110 c c v
+	4 copy 11111111 c c p p
+	}
+
+	asm
+		push	esi
+		push	edi
+		mov		ax, ds
+		mov		es, ax
+		mov		esi, image_in
+		mov		edi, image_out
+@next:
+		xor		eax, eax
+		lodsb
+		mov		ecx, eax
+		test	eax, $80
+		jnz		@c1c
+		shr		ecx, 4
+		add		ecx, 3
+		and		eax, $f
+		shl		eax, 8
+		lodsb
+		mov		edx, esi
+		mov		esi, edi
+		sub		esi, eax
+		jmp		@copy_from_destination
+@c1c:
+		and		ecx, $3f
+		test	eax, $40
+		jnz		@c2c
+		or		ecx, ecx
+		jz		@end
+		jmp		@copy_from_source
+@c2c:
+		xor		eax, eax
+		lodsw
+		cmp		ecx, $3e
+		je		@c3
+		ja		@c4
+		mov		edx, esi
+		mov		esi, edi
+		sub		esi, eax
+		add		ecx, 3
+		jmp		@copy_from_destination
+@c3:
+		mov		ecx, eax
+		lodsb
+		rep		stosb
+		jmp		@next
+@c4:
+		mov		ecx, eax
+		lodsw
+		mov		edx, esi
+		mov		esi, edi
+		sub		esi, eax
+@copy_from_destination:
+		rep		movsb
+		mov		esi, edx
+		jmp		@next
+@copy_from_source:
+		rep		movsb
+		jmp		@next
+@end:
+		sub		edi, image_out
+		mov		cb_out, edi
+		pop		edi
+		pop		esi
+	end;
+	Result := cb_out;
+end;
+
+end.
