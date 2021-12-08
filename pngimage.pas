@@ -737,69 +737,69 @@ type
   protected
     {Memory copy methods to decode}
     procedure CopyNonInterlacedRGB8(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedRGB16(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedPalette148(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedPalette2(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedGray2(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedGrayscale16(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedRGBAlpha8(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedRGBAlpha16(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedGrayscaleAlpha8(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyNonInterlacedGrayscaleAlpha16(
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedRGB8(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedRGB16(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedPalette148(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedPalette2(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedGray2(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedGrayscale16(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedRGBAlpha8(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedRGBAlpha16(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedGrayscaleAlpha8(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
     procedure CopyInterlacedGrayscaleAlpha16(const Pass: Byte;
-      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+      Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
   protected
     {Memory copy methods to encode}
-    procedure EncodeNonInterlacedRGB8(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedRGB16(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedGrayscale16(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedPalette148(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedRGBAlpha8(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedRGBAlpha16(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedGrayscaleAlpha8(Src, Dest, Trans: pChar);
-    procedure EncodeNonInterlacedGrayscaleAlpha16(Src, Dest, Trans: pChar);
-    procedure EncodeInterlacedRGB8(const Pass: Byte; Src, Dest, Trans: pChar);
-    procedure EncodeInterlacedRGB16(const Pass: Byte; Src, Dest, Trans: pChar);
+    procedure EncodeNonInterlacedRGB8(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedRGB16(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedGrayscale16(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedPalette148(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedRGBAlpha8(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedRGBAlpha16(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedGrayscaleAlpha8(Src, Dest, Trans: pByte);
+    procedure EncodeNonInterlacedGrayscaleAlpha16(Src, Dest, Trans: pByte);
+    procedure EncodeInterlacedRGB8(const Pass: Byte; Src, Dest, Trans: pByte);
+    procedure EncodeInterlacedRGB16(const Pass: Byte; Src, Dest, Trans: pByte);
     procedure EncodeInterlacedPalette148(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
     procedure EncodeInterlacedGrayscale16(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
     procedure EncodeInterlacedRGBAlpha8(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
     procedure EncodeInterlacedRGBAlpha16(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
     procedure EncodeInterlacedGrayscaleAlpha8(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
     procedure EncodeInterlacedGrayscaleAlpha16(const Pass: Byte;
-      Src, Dest, Trans: pChar);
+      Src, Dest, Trans: pByte);
   public
     {Loads the chunk from a stream}
     function LoadFromStream(Stream: TStream; const ChunkName: TChunkName;
@@ -2517,13 +2517,13 @@ const
 
 {Copy interlaced images with 1 byte for R, G, B}
 procedure TChunkIDAT.CopyInterlacedRGB8(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col * 3);
+  Dest := pByte(Longint(Dest) + Col * 3);
   repeat
     {Copy this row}
     Byte(Dest^) := fOwner.GammaTable[pByte(Longint(Src) + 2)^]; inc(Dest);
@@ -2539,13 +2539,13 @@ end;
 
 {Copy interlaced images with 2 bytes for R, G, B}
 procedure TChunkIDAT.CopyInterlacedRGB16(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col * 3);
+  Dest := pByte(Longint(Dest) + Col * 3);
   repeat
     {Copy this row}
     Byte(Dest^) := Owner.GammaTable[pByte(Longint(Src) + 4)^]; inc(Dest);
@@ -2567,13 +2567,13 @@ end;
 
 {Copy ímages with palette using bit depths 1, 4 or 8}
 procedure TChunkIDAT.CopyInterlacedPalette148(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 const
   BitTable: Array[1..8] of Integer = ($1, $3, 0, $F, 0, 0, 0, $FF);
   StartBit: Array[1..8] of Integer = (7 , 0 , 0, 4,  0, 0, 0, 0);
 var
   CurBit, Col: Integer;
-  Dest2: PChar;
+  Dest2: pByte;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
@@ -2582,7 +2582,7 @@ begin
     CurBit := StartBit[Header.BitDepth];
     repeat
       {Adjust pointer to pixel byte bounds}
-      Dest2 := pChar(Longint(Dest) + (Header.BitDepth * Col) div 8);
+      Dest2 := pByte(Longint(Dest) + (Header.BitDepth * Col) div 8);
       {Copy data}
       Byte(Dest2^) := Byte(Dest2^) or
         ( ((Byte(Src^) shr CurBit) and BitTable[Header.BitDepth])
@@ -2601,10 +2601,10 @@ end;
 
 {Copy ímages with palette using bit depth 2}
 procedure TChunkIDAT.CopyInterlacedPalette2(const Pass: Byte; Src, Dest,
-  Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   CurBit, Col: Integer;
-  Dest2: PChar;
+  Dest2: pByte;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
@@ -2613,7 +2613,7 @@ begin
     CurBit := 6;
     repeat
       {Adjust pointer to pixel byte bounds}
-      Dest2 := pChar(Longint(Dest) + Col div 2);
+      Dest2 := pByte(Longint(Dest) + Col div 2);
       {Copy data}
       Byte(Dest2^) := Byte(Dest2^) or (((Byte(Src^) shr CurBit) and $3)
          shl (4 - (4 * Col) mod 8));
@@ -2630,10 +2630,10 @@ end;
 
 {Copy ímages with grayscale using bit depth 2}
 procedure TChunkIDAT.CopyInterlacedGray2(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   CurBit, Col: Integer;
-  Dest2: PChar;
+  Dest2: pByte;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
@@ -2642,7 +2642,7 @@ begin
     CurBit := 6;
     repeat
       {Adjust pointer to pixel byte bounds}
-      Dest2 := pChar(Longint(Dest) + Col div 2);
+      Dest2 := pByte(Longint(Dest) + Col div 2);
       {Copy data}
       Byte(Dest2^) := Byte(Dest2^) or ((((Byte(Src^) shr CurBit) shl 2) and $F)
          shl (4 - (Col*4) mod 8));
@@ -2659,13 +2659,13 @@ end;
 
 {Copy ímages with palette using 2 bytes for each pixel}
 procedure TChunkIDAT.CopyInterlacedGrayscale16(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col);
+  Dest := pByte(Longint(Dest) + Col);
   repeat
     {Copy this row}
     Dest^ := Src^; inc(Dest);
@@ -2682,17 +2682,17 @@ end;
 
 {Decodes interlaced RGB alpha with 1 byte for each sample}
 procedure TChunkIDAT.CopyInterlacedRGBAlpha8(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col * 3);
-  Trans := pChar(Longint(Trans) + Col);
+  Dest := pByte(Longint(Dest) + Col * 3);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row and alpha value}
-    Trans^ := pChar(Longint(Src) + 3)^;
+    Trans^ := pByte(Longint(Src) + 3)^;
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 2)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 1)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src)    )^]; inc(Dest);
@@ -2707,17 +2707,17 @@ end;
 
 {Decodes interlaced RGB alpha with 2 bytes for each sample}
 procedure TChunkIDAT.CopyInterlacedRGBAlpha16(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col * 3);
-  Trans := pChar(Longint(Trans) + Col);
+  Dest := pByte(Longint(Dest) + Col * 3);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row and alpha value}
-    Trans^ := pChar(Longint(Src) + 6)^;
+    Trans^ := pByte(Longint(Src) + 6)^;
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 4)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 2)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src)    )^]; inc(Dest);
@@ -2738,14 +2738,14 @@ end;
 
 {Decodes 8 bit grayscale image followed by an alpha sample}
 procedure TChunkIDAT.CopyInterlacedGrayscaleAlpha8(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column, pointers to the data and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col);
-  Trans := pChar(Longint(Trans) + Col);
+  Dest := pByte(Longint(Dest) + Col);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this grayscale value and alpha}
     Dest^ := Src^;  inc(Src);
@@ -2760,14 +2760,14 @@ end;
 
 {Decodes 16 bit grayscale image followed by an alpha sample}
 procedure TChunkIDAT.CopyInterlacedGrayscaleAlpha16(const Pass: Byte;
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   Col: Integer;
 begin
   {Get first column, pointers to the data and enter in loop}
   Col := ColumnStart[Pass];
-  Dest := pChar(Longint(Dest) + Col);
-  Trans := pChar(Longint(Trans) + Col);
+  Dest := pByte(Longint(Dest) + Col);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {$IFDEF Store16bits}
     Extra^ := pChar(Longint(Src) + 1)^; inc(Extra);
@@ -2790,9 +2790,9 @@ var
   CurrentPass: Byte;
   PixelsThisRow: Integer;
   CurrentRow: Integer;
-  Trans, Data{$IFDEF Store16bits}, Extra{$ENDIF}: pChar;
+  Trans, Data{$IFDEF Store16bits}, Extra{$ENDIF}: pByte;
   CopyProc: procedure(const Pass: Byte; Src, Dest,
-    Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar) of object;
+    Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte) of object;
 begin
 
   CopyProc := nil; {Initialize}
@@ -2882,7 +2882,7 @@ end;
 
 {Copy 8 bits RGB image}
 procedure TChunkIDAT.CopyNonInterlacedRGB8(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -2899,7 +2899,7 @@ end;
 
 {Copy 16 bits RGB image}
 procedure TChunkIDAT.CopyNonInterlacedRGB16(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -2925,7 +2925,7 @@ end;
 
 {Copy types using palettes (1, 4 or 8 bits per pixel)}
 procedure TChunkIDAT.CopyNonInterlacedPalette148(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 begin
   {It's simple as copying the data}
   CopyMemory(Dest, Src, Row_Bytes);
@@ -2933,7 +2933,7 @@ end;
 
 {Copy grayscale types using 2 bits for each pixel}
 procedure TChunkIDAT.CopyNonInterlacedGray2(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   i: Integer;
 begin
@@ -2948,7 +2948,7 @@ end;
 
 {Copy types using palette with 2 bits for each pixel}
 procedure TChunkIDAT.CopyNonInterlacedPalette2(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   i: Integer;
 begin
@@ -2963,7 +2963,7 @@ end;
 
 {Copy grayscale images with 16 bits}
 procedure TChunkIDAT.CopyNonInterlacedGrayscale16(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -2983,14 +2983,14 @@ end;
 
 {Copy 8 bits per sample RGB images followed by an alpha byte}
 procedure TChunkIDAT.CopyNonInterlacedRGBAlpha8(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   i: Integer;
 begin
   FOR I := 1 TO ImageWidth DO
   begin
     {Copy pixel values and transparency}
-    Trans^ := pChar(Longint(Src) + 3)^;
+    Trans^ := pByte(Longint(Src) + 3)^;
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 2)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 1)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src)    )^]; inc(Dest);
@@ -3001,7 +3001,7 @@ end;
 
 {Copy 16 bits RGB image with alpha using 2 bytes for each sample}
 procedure TChunkIDAT.CopyNonInterlacedRGBAlpha16(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -3009,7 +3009,7 @@ begin
   begin
     //Copy rgb and alpha values (transforming from 16 bits to 8 bits)
     {Copy pixel values}
-    Trans^ := pChar(Longint(Src) + 6)^;
+    Trans^ := pByte(Longint(Src) + 6)^;
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 4)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src) + 2)^]; inc(Dest);
     Byte(Dest^)  := fOwner.GammaTable[pByte(Longint(Src)    )^]; inc(Dest);
@@ -3026,7 +3026,7 @@ end;
 
 {Copy 8 bits per sample grayscale followed by alpha}
 procedure TChunkIDAT.CopyNonInterlacedGrayscaleAlpha8(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -3041,7 +3041,7 @@ end;
 
 {Copy 16 bits per sample grayscale followed by alpha}
 procedure TChunkIDAT.CopyNonInterlacedGrayscaleAlpha16(
-  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar);
+  Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte);
 var
   I: Integer;
 begin
@@ -3062,9 +3062,9 @@ procedure TChunkIDAT.DecodeNonInterlaced(Stream: TStream;
   var ZLIBStream: TZStreamRec2; const Size: Integer; var crcfile: Cardinal);
 var
   j: Cardinal;
-  Trans, Data{$IFDEF Store16bits}, Extra{$ENDIF}: pChar;
+  Trans, Data{$IFDEF Store16bits}, Extra{$ENDIF}: pByte;
   CopyProc: procedure(
-    Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pChar) of object;
+    Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: pByte) of object;
 begin
   CopyProc := nil; {Initialize}
   {Determines the method to copy the image data}
@@ -3394,7 +3394,7 @@ begin
 end;
 
 {Copy memory to encode RGB image with 1 byte for each color sample}
-procedure TChunkIDAT.EncodeNonInterlacedRGB8(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedRGB8(Src, Dest, Trans: pByte);
 var
   I: Integer;
 begin
@@ -3410,7 +3410,7 @@ begin
 end;
 
 {Copy memory to encode RGB images with 16 bits for each color sample}
-procedure TChunkIDAT.EncodeNonInterlacedRGB16(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedRGB16(Src, Dest, Trans: pByte);
 var
   I: Integer;
 begin
@@ -3429,14 +3429,14 @@ begin
 end;
 
 {Copy memory to encode types using palettes (1, 4 or 8 bits per pixel)}
-procedure TChunkIDAT.EncodeNonInterlacedPalette148(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedPalette148(Src, Dest, Trans: pByte);
 begin
   {It's simple as copying the data}
   CopyMemory(Dest, Src, Row_Bytes);
 end;
 
 {Copy memory to encode grayscale images with 2 bytes for each sample}
-procedure TChunkIDAT.EncodeNonInterlacedGrayscale16(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedGrayscale16(Src, Dest, Trans: pByte);
 var
   I: Integer;
 begin
@@ -3451,7 +3451,7 @@ begin
 end;
 
 {Encode images using RGB followed by an alpha value using 1 byte for each}
-procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha8(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha8(Src, Dest, Trans: pByte);
 var
   i: Integer;
 begin
@@ -3467,7 +3467,7 @@ begin
 end;
 
 {Encode images using RGB followed by an alpha value using 2 byte for each}
-procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha16(Src, Dest, Trans: pChar);
+procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha16(Src, Dest, Trans: pByte);
 var
   i: Integer;
 begin
@@ -3484,7 +3484,7 @@ end;
 
 {Encode grayscale images followed by an alpha value using 1 byte for each}
 procedure TChunkIDAT.EncodeNonInterlacedGrayscaleAlpha8(
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   i: Integer;
 begin
@@ -3499,7 +3499,7 @@ end;
 
 {Encode grayscale images followed by an alpha value using 2 byte for each}
 procedure TChunkIDAT.EncodeNonInterlacedGrayscaleAlpha16(
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   i: Integer;
 begin
@@ -3519,11 +3519,11 @@ var
   {Current line}
   j: Cardinal;
   {Pointers to image data}
-  Data, Trans: PChar;
+  Data, Trans: pByte;
   {Filter used for this line}
   Filter: Byte;
   {Method which will copy the data into the buffer}
-  CopyProc: procedure(Src, Dest, Trans: pChar) of object;
+  CopyProc: procedure(Src, Dest, Trans: pByte) of object;
 begin
   CopyProc := nil;  {Initialize to avoid warnings}
   {Defines the method to copy the data to the buffer depending on}
@@ -3584,13 +3584,13 @@ end;
 {Copy memory to encode interlaced images using RGB value with 1 byte for}
 {each color sample}
 procedure TChunkIDAT.EncodeInterlacedRGB8(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col * 3);
+  Src := pByte(Longint(Src) + Col * 3);
   repeat
     {Copy this row}
     Byte(Dest^) := fOwner.InverseGamma[pByte(Longint(Src) + 2)^]; inc(Dest);
@@ -3605,13 +3605,13 @@ end;
 
 {Copy memory to encode interlaced RGB images with 2 bytes each color sample}
 procedure TChunkIDAT.EncodeInterlacedRGB16(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col * 3);
+  Src := pByte(Longint(Src) + Col * 3);
   repeat
     {Copy this row}
     pWord(Dest)^ := Owner.InverseGamma[pByte(Longint(Src) + 2)^]; inc(Dest, 2);
@@ -3627,7 +3627,7 @@ end;
 {Copy memory to encode interlaced images using palettes using bit depths}
 {1, 4, 8 (each pixel in the image)}
 procedure TChunkIDAT.EncodeInterlacedPalette148(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 const
   BitTable: Array[1..8] of Integer = ($1, $3, 0, $F, 0, 0, 0, $FF);
   StartBit: Array[1..8] of Integer = (7 , 0 , 0, 4,  0, 0, 0, 0);
@@ -3664,13 +3664,13 @@ end;
 
 {Copy to encode interlaced grayscale images using 16 bits for each sample}
 procedure TChunkIDAT.EncodeInterlacedGrayscale16(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col);
+  Src := pByte(Longint(Src) + Col);
   repeat
     {Copy this row}
     pWord(Dest)^ := Byte(Src^); inc(Dest, 2);
@@ -3684,14 +3684,14 @@ end;
 {Copy to encode interlaced rgb images followed by an alpha value, all using}
 {one byte for each sample}
 procedure TChunkIDAT.EncodeInterlacedRGBAlpha8(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col * 3);
-  Trans := pChar(Longint(Trans) + Col);
+  Src := pByte(Longint(Src) + Col * 3);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row}
     Byte(Dest^) := Owner.InverseGamma[pByte(Longint(Src) + 2)^]; inc(Dest);
@@ -3709,14 +3709,14 @@ end;
 {Copy to encode interlaced rgb images followed by an alpha value, all using}
 {two byte for each sample}
 procedure TChunkIDAT.EncodeInterlacedRGBAlpha16(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col * 3);
-  Trans := pChar(Longint(Trans) + Col);
+  Src := pByte(Longint(Src) + Col * 3);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row}
     pWord(Dest)^ := pByte(Longint(Src) + 2)^; inc(Dest, 2);
@@ -3734,14 +3734,14 @@ end;
 {Copy to encode grayscale interlaced images followed by an alpha value, all}
 {using 1 byte for each sample}
 procedure TChunkIDAT.EncodeInterlacedGrayscaleAlpha8(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col);
-  Trans := pChar(Longint(Trans) + Col);
+  Src := pByte(Longint(Src) + Col);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row}
     Dest^ := Src^;   inc(Dest);
@@ -3757,14 +3757,14 @@ end;
 {Copy to encode grayscale interlaced images followed by an alpha value, all}
 {using 2 bytes for each sample}
 procedure TChunkIDAT.EncodeInterlacedGrayscaleAlpha16(const Pass: Byte;
-  Src, Dest, Trans: pChar);
+  Src, Dest, Trans: pByte);
 var
   Col: Integer;
 begin
   {Get first column and enter in loop}
   Col := ColumnStart[Pass];
-  Src := pChar(Longint(Src) + Col);
-  Trans := pChar(Longint(Trans) + Col);
+  Src := pByte(Longint(Src) + Col);
+  Trans := pByte(Longint(Trans) + Col);
   repeat
     {Copy this row}
     pWord(Dest)^ := pByte(Src)^; inc(Dest, 2);
@@ -3784,9 +3784,9 @@ var
   CurrentPass, Filter: Byte;
   PixelsThisRow: Integer;
   CurrentRow : Integer;
-  Trans, Data: pChar;
+  Trans, Data: pByte;
   CopyProc: procedure(const Pass: Byte;
-    Src, Dest, Trans: pChar) of object;
+    Src, Dest, Trans: pByte) of object;
 begin
   CopyProc := nil;  {Initialize to avoid warnings}
   {Defines the method to copy the data to the buffer depending on}
