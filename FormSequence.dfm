@@ -87,6 +87,12 @@ object FrmSequence: TFrmSequence
           BevelInner = bvNone
           BevelOuter = bvNone
           Color = clBtnFace
+          Font.Charset = GB2312_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'MS Sans Serif'
+          Font.Style = []
+          ParentFont = False
           PlainText = True
           PopupMenu = PopupMenu1
           ReadOnly = True
@@ -94,6 +100,7 @@ object FrmSequence: TFrmSequence
           TabOrder = 0
           WantReturns = False
           WordWrap = False
+          Zoom = 100
         end
       end
       object Panel7: TPanel
@@ -223,7 +230,6 @@ object FrmSequence: TFrmSequence
             item
               Caption = 'FireFly'
             end>
-          ItemHeight = 16
           TabOrder = 0
           Text = 'Action'
           OnChange = ComboBoxEx1Change
@@ -292,8 +298,7 @@ object FrmSequence: TFrmSequence
           Top = 8
           Width = 49
           Height = 22
-          MaxLength = 1
-          MaxValue = 6
+          MaxValue = 0
           MinValue = 0
           TabOrder = 0
           Value = 0
