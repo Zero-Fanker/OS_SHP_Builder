@@ -79,7 +79,7 @@ PAnimType = ^Tanimtype;
     XPManifest: TXPManifest;
     procedure ComboBoxEx1Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure ButtonSequenceEditClick(Sender: TObject);
     procedure From_FrameChange(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure SaveSequence1Click(Sender: TObject);
@@ -93,7 +93,7 @@ PAnimType = ^Tanimtype;
     procedure SequenceTimerTimer(Sender: TObject);
     procedure SaveAnimationSequence1Click(Sender: TObject);
     procedure Options1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure ButtonAdvanceControlEditClick(Sender: TObject);
     procedure OpenAnimationSequence1Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -145,12 +145,10 @@ begin
    if ComboBoxEx1.ItemIndex = num then
    begin
       From_Frame.Value := anim.StartFrame;
-      if (anim.count2 = 0) or (anim.count2 = 1) then
+      if anim.Count2 = 0 then
          faces := 1
-      else if anim.count2 = 6 then
-         faces := anim.count2 + 2
       else
-         faces := anim.count2;
+         faces := 8;//Hard coded for WW's data, it is possible to expand
       To_Frame.Value := From_Frame.Value+((anim.Count)*faces)-1;
       Current_Animation := @Anim;
    end;
@@ -158,7 +156,7 @@ end;
 
 procedure TFrmSequence.checkforanim2(name : string);
 var
-   faces,x : integer;
+   faces, interval, x : integer;
 begin
    if Animations2_no = 0 then exit;
 
@@ -167,14 +165,17 @@ begin
       begin
          From_Frame.Value := Animations2[x].anim.StartFrame;
 
-         if (Animations2[x].anim.count2 = 0) or (Animations2[x].anim.count2 = 1) then
-            faces := 1
-         else if Animations2[x].anim.count2 = 6 then
-            faces := Animations2[x].anim.count2 + 2
+         if Animations2[x].anim.Count2 = 0 then
+         begin
+            faces := 1;
+            interval := Animations2[x].anim.Count;
+         end
          else
-            faces := Animations2[x].anim.count2;
-         To_Frame.Value := From_Frame.Value+((Animations2[x].anim.Count)*faces)-1;
-
+         begin
+            faces := 8;//Hard coded for WW's data, it is possible to expand
+            interval := Animations2[x].anim.Count2;
+         end;
+         To_Frame.Value := From_Frame.Value + (interval * faces) - 1;
          Count2Edit.Value := Animations2[x].anim.Count2;
          SpecialEdit.Text := copy(Animations2[x].Anim.special,2,length(Animations2[x].Anim.special));
 
@@ -220,15 +221,19 @@ end;
 
 function TFrmSequence.WorkOutEndFrame : integer;
 var
-   faces : cardinal;
+   faces, interval : cardinal;
 begin
-   if (Current_Animation.count2 = 0) or (Current_Animation.count2 = 1) then
-      faces := 1
-   else if Current_Animation.count2 = 6 then
-      faces := Current_Animation.count2 + 2
+   if Current_Animation.Count2 = 0 then
+   begin
+      faces := 1;
+      interval := 1;
+   end
    else
-      faces := Current_Animation.count2;
-   result := Current_Animation.StartFrame+((Current_Animation.Count)*faces)-1;
+   begin
+      faces := 8;//Hard coded for WW's data, it is possible to expand
+      interval := Current_Animation.Count2;
+   end;
+   result := Current_Animation.StartFrame + (interval * faces) - 1;
 end;
 
 Procedure TFrmSequence.SetupAnimations;
@@ -269,18 +274,19 @@ begin
    Frame_Bitmap := TBitmap.Create;
 end;
 
-procedure TFrmSequence.Button1Click(Sender: TObject);
+procedure TFrmSequence.ButtonSequenceEditClick(Sender: TObject);
 var
-   frames: integer;
+   framePerFacing, totalFrames: integer;
 begin
-   if (Current_Animation.Count2 = 1) or (Current_Animation.Count2 = 0) then
-      frames := 1
-   else if Current_Animation.Count2 = 6 then
-      frames := Current_Animation.Count2+2
-   else
-      frames := Current_Animation.Count2;
-
-   setanim2(From_Frame.Value,((To_Frame.Value-From_Frame.Value+1) div frames),Current_Animation.Count2);
+   totalFrames := To_Frame.Value - From_Frame.Value + 1;
+   if Current_Animation.Count2 = 0 then begin
+      framePerFacing := totalFrames;
+   end else begin
+      framePerFacing := totalFrames div 8;//Hard coded for WW's data, it is possible to expand
+      Current_Animation.Count2 := framePerFacing;//Usually this data is the same as count, unless specified
+   end;
+   //       start             count           count2
+   setanim2(From_Frame.Value, framePerFacing, Current_Animation.Count2);
    ComboBoxEx1Change(Sender); // Make it update
    BuildINI_Code; // Update INI Code
 end;
@@ -705,10 +711,16 @@ begin
    FrmMain.Preferences1Click(sender);
 end;
 
-procedure TFrmSequence.Button2Click(Sender: TObject);
+procedure TFrmSequence.ButtonAdvanceControlEditClick(Sender: TObject);
+var
+    specialTxt : string;
 begin
    Current_Animation.Count2 := Count2Edit.Value;
-   Current_Animation.special := ',' + SpecialEdit.Text;
+   specialTxt := trim(SpecialEdit.Text);
+   if length(specialTxt) > 0 then
+   begin
+      Current_Animation.special := ',' + specialTxt;
+   end;
    ComboBoxEx1Change(Sender); // Make it update
    BuildINI_Code; // Update INI Code
 end;

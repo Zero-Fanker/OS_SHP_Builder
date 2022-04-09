@@ -264,7 +264,7 @@ object FrmSequence: TFrmSequence
           Height = 17
           Caption = 'Edit'
           TabOrder = 3
-          OnClick = Button1Click
+          OnClick = ButtonSequenceEditClick
         end
       end
       object Panel8: TPanel
@@ -317,7 +317,7 @@ object FrmSequence: TFrmSequence
           Height = 17
           Caption = 'Edit'
           TabOrder = 2
-          OnClick = Button2Click
+          OnClick = ButtonAdvanceControlEditClick
         end
       end
     end
